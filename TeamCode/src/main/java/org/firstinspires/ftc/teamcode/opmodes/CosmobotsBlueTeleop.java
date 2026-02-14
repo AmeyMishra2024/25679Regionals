@@ -208,6 +208,7 @@ public class CosmobotsBlueTeleop extends OpMode {
         pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
         pinpoint.resetPosAndIMU();
         applyPinpointOffsets();
+        applyPinpointDirections();
         if (PoseStore.hasSaved()) {
             Pose p = PoseStore.lastPose;
             setPinpointPose(p.getX(), p.getY(), p.getHeading());
@@ -739,7 +740,8 @@ public class CosmobotsBlueTeleop extends OpMode {
             forwardY = 7.5;
             strafeX = 0.0;
         }
-        invokePinpointOffsets(forwardY, strafeX);
+        // Pinpoint expects offsets in mm.
+        invokePinpointOffsets(forwardY * 25.4, strafeX * 25.4);
     }
 
     private static Double readLocalizerDouble(String fieldName, String getterName) {
@@ -769,6 +771,53 @@ public class CosmobotsBlueTeleop extends OpMode {
         try {
             Method m = pinpoint.getClass().getMethod("setOffset", double.class, double.class);
             m.invoke(pinpoint, forwardY, strafeX);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void applyPinpointDirections() {
+        if (pinpoint == null) return;
+        Object forwardDir = readLocalizerObject("forwardEncoderDirection", "getForwardEncoderDirection");
+        Object strafeDir = readLocalizerObject("strafeEncoderDirection", "getStrafeEncoderDirection");
+        if (forwardDir == null || strafeDir == null) return;
+        invokePinpointDirections(forwardDir, strafeDir);
+    }
+
+    private static Object readLocalizerObject(String fieldName, String getterName) {
+        Object cfg = Constants.localizerConstants;
+        try {
+            Field f = cfg.getClass().getDeclaredField(fieldName);
+            f.setAccessible(true);
+            return f.get(cfg);
+        } catch (Exception ignored) {
+        }
+        try {
+            Method m = cfg.getClass().getMethod(getterName);
+            return m.invoke(cfg);
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private void invokePinpointDirections(Object forwardDir, Object strafeDir) {
+        try {
+            Method m = pinpoint.getClass().getMethod("setEncoderDirections",
+                    GoBildaPinpointDriver.EncoderDirection.class,
+                    GoBildaPinpointDriver.EncoderDirection.class);
+            m.invoke(pinpoint, forwardDir, strafeDir);
+            return;
+        } catch (Exception ignored) {
+        }
+        try {
+            Method m = pinpoint.getClass().getMethod("setForwardEncoderDirection",
+                    GoBildaPinpointDriver.EncoderDirection.class);
+            m.invoke(pinpoint, forwardDir);
+        } catch (Exception ignored) {
+        }
+        try {
+            Method m = pinpoint.getClass().getMethod("setStrafeEncoderDirection",
+                    GoBildaPinpointDriver.EncoderDirection.class);
+            m.invoke(pinpoint, strafeDir);
         } catch (Exception ignored) {
         }
     }
