@@ -22,6 +22,10 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.teamcode.pedroPathing.constants.Constants;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 @Config
 @TeleOp(name = "1 - Cosmobots - Blue")
@@ -203,6 +207,7 @@ public class CosmobotsBlueTeleop extends OpMode {
         telemetryThrottler = new TelemetryThrottler(8.0); // ~8 Hz telemetry
         pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
         pinpoint.resetPosAndIMU();
+        applyPinpointOffsets();
         if (PoseStore.hasSaved()) {
             Pose p = PoseStore.lastPose;
             setPinpointPose(p.getX(), p.getY(), p.getHeading());
@@ -724,6 +729,48 @@ public class CosmobotsBlueTeleop extends OpMode {
         while (heading < 0) heading += 2 * Math.PI;
         while (heading >= 2 * Math.PI) heading -= 2 * Math.PI;
         return new Pose(x, y, heading);
+    }
+
+    private void applyPinpointOffsets() {
+        if (pinpoint == null) return;
+        Double forwardY = readLocalizerDouble("forwardPodY", "getForwardPodY");
+        Double strafeX = readLocalizerDouble("strafePodX", "getStrafePodX");
+        if (forwardY == null || strafeX == null) {
+            forwardY = 7.5;
+            strafeX = 0.0;
+        }
+        invokePinpointOffsets(forwardY, strafeX);
+    }
+
+    private static Double readLocalizerDouble(String fieldName, String getterName) {
+        Object cfg = Constants.localizerConstants;
+        try {
+            Field f = cfg.getClass().getDeclaredField(fieldName);
+            f.setAccessible(true);
+            return f.getDouble(cfg);
+        } catch (Exception ignored) {
+        }
+        try {
+            Method m = cfg.getClass().getMethod(getterName);
+            Object v = m.invoke(cfg);
+            return (v instanceof Number) ? ((Number) v).doubleValue() : null;
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private void invokePinpointOffsets(double forwardY, double strafeX) {
+        try {
+            Method m = pinpoint.getClass().getMethod("setOffsets", double.class, double.class);
+            m.invoke(pinpoint, forwardY, strafeX);
+            return;
+        } catch (Exception ignored) {
+        }
+        try {
+            Method m = pinpoint.getClass().getMethod("setOffset", double.class, double.class);
+            m.invoke(pinpoint, forwardY, strafeX);
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
