@@ -675,6 +675,30 @@ public class Blueconsistenttele extends OpMode {
                     if (transferTimer.seconds() > 0.1) { transferState = 7; transferTimer.reset(); }
                     break;
                 case 7:
+                    HardwareWriteCache.setMotorPower(intakeback, 1.0);
+                    HardwareWriteCache.setMotorPower(intakefront, 1.0);
+                    HardwareWriteCache.setServoPosition(launchgate, LAUNCHGATE_DOWN);
+                    if (transferTimer.seconds() > 0.1) { transferState = 8; transferTimer.reset(); }
+                    break;
+                case 8:
+                    HardwareWriteCache.setMotorPower(intakeback, 1.0);
+                    HardwareWriteCache.setMotorPower(intakefront, 1.0);
+                    HardwareWriteCache.setServoPosition(launchgate, LAUNCHGATE_FULL_UP);
+                    if (transferTimer.seconds() > 0.1) { transferState = 9; transferTimer.reset(); }
+                    break;
+                case 9:
+                    HardwareWriteCache.setMotorPower(intakeback, 1.0);
+                    HardwareWriteCache.setMotorPower(intakefront, 1.0);
+                    HardwareWriteCache.setServoPosition(launchgate, LAUNCHGATE_DOWN);
+                    if (transferTimer.seconds() > 0.1) { transferState = 10; transferTimer.reset(); }
+                    break;
+                case 10:
+                    HardwareWriteCache.setMotorPower(intakeback, 1.0);
+                    HardwareWriteCache.setMotorPower(intakefront, 1.0);
+                    HardwareWriteCache.setServoPosition(launchgate, LAUNCHGATE_FULL_UP);
+                    if (transferTimer.seconds() > 0.1) { transferState = 11; transferTimer.reset(); }
+                    break;
+                case 11:
                     HardwareWriteCache.setServoPosition(launchgate, LAUNCHGATE_DOWN);
                     HardwareWriteCache.setMotorPower(intakeback, 0.0);
                     HardwareWriteCache.setMotorPower(intakefront, 0.0);
