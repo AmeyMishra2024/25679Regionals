@@ -310,9 +310,10 @@ public class CosmobotsRedTeleop extends OpMode {
 
         pinpoint.update();
         Pose2D ppPose = pinpoint.getPosition();
-        double currentX  = ppPose.getX(DistanceUnit.INCH);
-        double currentY  = ppPose.getY(DistanceUnit.INCH);
-        double currentHeading = ppPose.getHeading(AngleUnit.RADIANS);
+        Pose pedroPose = pinpointToPedroPose(ppPose);
+        double currentX  = pedroPose.getX();
+        double currentY  = pedroPose.getY();
+        double currentHeading = pedroPose.getHeading();
 
         // Turret aim (Pinpoint)
         double deltaX = targetX - currentX;
@@ -711,6 +712,15 @@ public class CosmobotsRedTeleop extends OpMode {
     private void setPinpointPose(double xIn, double yIn, double headingRad) {
         if (pinpoint == null) return;
         pinpoint.setPosition(new Pose2D(DistanceUnit.INCH, xIn, yIn, AngleUnit.RADIANS, headingRad));
+    }
+
+    private static Pose pinpointToPedroPose(Pose2D ppPose) {
+        double x = ppPose.getX(DistanceUnit.INCH);
+        double y = ppPose.getY(DistanceUnit.INCH);
+        double heading = ppPose.getHeading(AngleUnit.RADIANS);
+        while (heading < 0) heading += 2 * Math.PI;
+        while (heading >= 2 * Math.PI) heading -= 2 * Math.PI;
+        return new Pose(x, y, heading);
     }
 
     @Override

@@ -315,12 +315,13 @@ public class Redconsistelttele extends OpMode {
         bl.setPower(blPower);
         br.setPower(brPower);
 
-        // Pose (Pinpoint)
+        // Pose (Pinpoint -> PedroPathing)
         pinpoint.update();
         Pose2D ppPose = pinpoint.getPosition();
-        final double currentX  = ppPose.getX(DistanceUnit.INCH);
-        final double currentY  = ppPose.getY(DistanceUnit.INCH);
-        final double currentHeading = ppPose.getHeading(AngleUnit.RADIANS);
+        Pose pedroPose = pinpointToPedroPose(ppPose);
+        final double currentX  = pedroPose.getX();
+        final double currentY  = pedroPose.getY();
+        final double currentHeading = pedroPose.getHeading();
 
         // Turret aim (Pinpoint)
         final double deltaX = targetX - currentX;
@@ -715,6 +716,15 @@ public class Redconsistelttele extends OpMode {
     private void setPinpointPose(double xIn, double yIn, double headingRad) {
         if (pinpoint == null) return;
         pinpoint.setPosition(new Pose2D(DistanceUnit.INCH, xIn, yIn, AngleUnit.RADIANS, headingRad));
+    }
+
+    private static Pose pinpointToPedroPose(Pose2D ppPose) {
+        double x = ppPose.getX(DistanceUnit.INCH);
+        double y = ppPose.getY(DistanceUnit.INCH);
+        double heading = ppPose.getHeading(AngleUnit.RADIANS);
+        while (heading < 0) heading += 2 * Math.PI;
+        while (heading >= 2 * Math.PI) heading -= 2 * Math.PI;
+        return new Pose(x, y, heading);
     }
 
     @Override
