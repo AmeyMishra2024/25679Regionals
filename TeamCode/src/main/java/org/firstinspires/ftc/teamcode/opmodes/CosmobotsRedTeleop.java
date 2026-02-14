@@ -4,8 +4,8 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.controller.PIDFController;
-import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -19,12 +19,14 @@ import org.firstinspires.ftc.teamcode.helpers.hardware.optimization.LoopOptimiza
 import org.firstinspires.ftc.teamcode.helpers.hardware.optimization.LoopOptimizations.TelemetryThrottler;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.constants.Constants;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 
 @Config
 @TeleOp(name = "1 - Cosmobots - Red")
 public class CosmobotsRedTeleop extends OpMode {
-    private Follower follower;  // Follower includes Pinpoint localization
+    private GoBildaPinpointDriver pinpoint;
     private MultipleTelemetry telemetryA;
     private PIDFController shooterPID;
     private VoltageSensor voltageSensor;
@@ -182,17 +184,12 @@ public class CosmobotsRedTeleop extends OpMode {
         HardwareWriteCache.clear(); // Reset cached writes on init
         bulkCache = new BulkCacheManager(hardwareMap);
         telemetryThrottler = new TelemetryThrottler(8.0); // ~8 Hz telemetry
-        follower = Constants.createFollower(hardwareMap);
-        try {
-            if (PoseStore.hasSaved()) {
-                follower.setStartingPose(PoseStore.lastPose);
-            } else {
-                follower.setStartingPose(new Pose(0, 0, 0));
-            }
-        } catch (Exception ignored) {
-            follower.setStartingPose(new Pose(0, 0, 0));
+        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
+        pinpoint.resetPosAndIMU();
+        if (PoseStore.hasSaved()) {
+            Pose p = PoseStore.lastPose;
+            setPinpointPose(p.getX(), p.getY(), p.getHeading());
         }
-        follower.startTeleopDrive();
 
         fl = hardwareMap.get(DcMotorEx.class, "frontleft");
         fr = hardwareMap.get(DcMotorEx.class, "frontright");
@@ -267,7 +264,6 @@ public class CosmobotsRedTeleop extends OpMode {
         if (bulkCache != null) {
             bulkCache.clear(); // Manual bulk cache clear once per loop
         }
-        follower.update(); // Update Pinpoint localization each loop
         boolean dpadLeft  = gamepad1.dpad_left;
         boolean dpadRight = gamepad1.dpad_right;
 
@@ -292,7 +288,7 @@ public class CosmobotsRedTeleop extends OpMode {
         boolean xPressed = gamepad1.x;
         if (xPressed && !lastX) {
             double snapHeadingRad = Math.toRadians(SNAP_HEADING_DEG);
-            follower.setPose(new Pose(SNAP_X, SNAP_Y, snapHeadingRad));
+            setPinpointPose(SNAP_X, SNAP_Y, snapHeadingRad);
         }
         lastX = xPressed;
 
@@ -312,13 +308,13 @@ public class CosmobotsRedTeleop extends OpMode {
         bl.setPower(blPower);
         br.setPower(brPower);
 
-        Pose currentPose = follower.getPose();
-        double currentX  = currentPose.getX();
-        double currentY  = currentPose.getY();
-        double currentHeading = currentPose.getHeading();
+        pinpoint.update();
+        Pose2D ppPose = pinpoint.getPosition();
+        double currentX  = ppPose.getX(DistanceUnit.INCH);
+        double currentY  = ppPose.getY(DistanceUnit.INCH);
+        double currentHeading = ppPose.getHeading(AngleUnit.RADIANS);
 
-        /*
-        // Turret aim (disabled)
+        // Turret aim (Pinpoint)
         double deltaX = targetX - currentX;
         double deltaY = targetY - currentY;
 
@@ -345,7 +341,6 @@ public class CosmobotsRedTeleop extends OpMode {
 
         HardwareWriteCache.setServoPosition(turret1, turret1Pos - 0.01);
         HardwareWriteCache.setServoPosition(turret2, servoPosition - 0.01);
-        */
 
         // Intake manual controls (bumpers)
         if (!autoTransfer) {
@@ -711,6 +706,11 @@ public class CosmobotsRedTeleop extends OpMode {
     private void setLedColor(double position) {
         if (led1 != null) HardwareWriteCache.setServoPosition(led1, position);
         if (led2 != null) HardwareWriteCache.setServoPosition(led2, position);
+    }
+
+    private void setPinpointPose(double xIn, double yIn, double headingRad) {
+        if (pinpoint == null) return;
+        pinpoint.setPosition(new Pose2D(DistanceUnit.INCH, xIn, yIn, AngleUnit.RADIANS, headingRad));
     }
 
     @Override
